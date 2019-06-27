@@ -15,10 +15,16 @@ WORKDIR /build
 ENV HOMEBRIDGE_VERSION=0.4.50
 RUN yarn add homebridge@${HOMEBRIDGE_VERSION}
 
-# Plugins we need
-# RUN yarn add homebridge-dyson-link --network-timeout 100000
+# Plugins we like
+RUN yarn add git://github.com/dubo-dubon-duponey/homebridge-roku --network-timeout 100000
+RUN cd node_modules/homebridge-roku && yarn
+
+RUN yarn add git://github.com/dubo-dubon-duponey/homebridge-weather-plus --network-timeout 100000
+RUN cd node_modules/homebridge-weather-plus && yarn
+
 RUN yarn add git://github.com/dubo-dubon-duponey/homebridge-dyson-link --network-timeout 100000
 RUN cd node_modules/homebridge-dyson-link && yarn
+
 RUN yarn add git://github.com/dubo-dubon-duponey/homebridge-pc-volume --network-timeout 100000
 RUN cd node_modules/homebridge-pc-volume && yarn && yarn build
 
@@ -27,8 +33,6 @@ RUN cd node_modules/homebridge-pc-volume && yarn && yarn build
 # RUN yarn add homebridge-config-ui-x@${CONFIG_UI_VERSION} --network-timeout 100000
 # homebridge-hue-scenes - meh
 
-# Testing new shit
-RUN yarn add homebridge-roku homebridge-weather-plus --network-timeout 100000
 # Interesting: https://www.npmjs.com/package/homebridge-http-base
 
 #######################
