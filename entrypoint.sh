@@ -3,13 +3,12 @@
 # Common helpers
 ########################################################################################################################
 # Err on anything
+# Note: bluetoothd might fail
 set -e
 
-helpers::avahi(){
+helpers::dbus(){
   # On container restart, cleanup the crap
   rm -f /var/run/dbus/pid
-  rm -f /run/avahi-daemon/pid
-
   # Not really useful, but then
   dbus-uuidgen --ensure
 
@@ -19,6 +18,11 @@ helpers::avahi(){
   until [ -e /var/run/dbus/system_bus_socket ]; do
     sleep 1s
   done
+}
+
+helpers::avahi(){
+  # On container restart, cleanup the crap
+  rm -f /run/avahi-daemon/pid
 
   # Set the hostname, if we have it
   sed -i'' -e "s,%AVAHI_NAME%,$AVAHI_NAME,g" /etc/avahi/avahi-daemon.conf
@@ -30,5 +34,7 @@ helpers::avahi(){
 ########################################################################################################################
 # Specific to this image
 ########################################################################################################################
+
+helpers::dbus
 helpers::avahi
 exec node_modules/.bin/homebridge -P /root/.homebridge/plugins "$@"

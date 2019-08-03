@@ -1,7 +1,7 @@
 ##########################
 # Building image
 ##########################
-FROM        node:dubnium-stretch-slim                                                                     AS builder
+FROM        node:dubnium-buster-slim                                                                      AS builder
 
 MAINTAINER  dubo-dubon-duponey@jsboot.space
 # Install dependencies and tools
@@ -29,7 +29,7 @@ RUN         cd node_modules/homebridge-pc-volume && yarn && yarn build
 #######################
 # Running image
 #######################
-FROM        node:dubnium-stretch-slim
+FROM        node:dubnium-buster-slim
 
 MAINTAINER  dubo-dubon-duponey@jsboot.space
 ARG         DEBIAN_FRONTEND="noninteractive"
@@ -57,11 +57,6 @@ VOLUME      "/root/.homebridge"
 
 ENTRYPOINT  ["./entrypoint.sh"]
 
-
-
-
-
-
 # XXX notes
 #    git python make g++ inetutils-ping sudo apt-utils apt-transport-https curl wget libnss-mdns avahi-discover libkrb5-dev ffmpeg nano vim
 # UI is annoying and useless
@@ -70,7 +65,6 @@ ENTRYPOINT  ["./entrypoint.sh"]
 # homebridge-hue-scenes - meh
 
 # Interesting: https://www.npmjs.com/package/homebridge-http-base
-
 #  && mkdir /homebridge \
 #  && npm set global-style=true \
 #  && npm set package-lock=false
