@@ -12,14 +12,14 @@ RUN         apt-get install -y git libavahi-compat-libdnssd-dev                 
 WORKDIR     /build
 
 # Versions: 0.4.50
-ARG         HOMEBRIDGE_VERSION=84b4733ac75aba9e7c19d36be282cd8162077860
+ARG         HOMEBRIDGE_VERSION=adb1f26ae26dc4ad47c8da682e9f251d7b201bbf
 ARG         ROKU_VERSION=b99bfaab55b5c973495cd00d0aee81676926450e
 ARG         WEATHER_VERSION=4ad21db38b9a4b5bd5b84e49f424b6a5270b21c0
 ARG         DYSON_VERSION=176de27844a402a1e3f05d8105b1ff78c5f86ebb
 ARG         VOLUME_VERSION=0301e4ab9baa4fa6420278cd8e610f07e5e4a92b
 
 RUN         yarn init -p -y
-RUN         yarn add git://github.com/nfarina/homebridge#${HOMEBRIDGE_VERSION}
+RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge#${HOMEBRIDGE_VERSION}
 RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-roku#${ROKU_VERSION}            --ignore-engines --network-timeout 100000 > /dev/null
 RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-weather-plus#${WEATHER_VERSION} --ignore-engines --network-timeout 100000 > /dev/null
 RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-dyson-link#${DYSON_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
