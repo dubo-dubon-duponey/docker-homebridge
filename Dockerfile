@@ -3,12 +3,11 @@
 ##########################
 FROM        node:dubnium-buster-slim                                                                      AS builder
 
-MAINTAINER  dubo-dubon-duponey@jsboot.space
 # Install dependencies and tools
 ARG         DEBIAN_FRONTEND="noninteractive"
 ENV         TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 RUN         apt-get update                                                                                > /dev/null
-RUN         apt-get install -y git libavahi-compat-libdnssd-dev                                           > /dev/null
+RUN         apt-get install -y --no-install-recommends git=1:2.20.1-2 libavahi-compat-libdnssd-dev=0.7-4+b1 > /dev/null
 WORKDIR     /build
 
 # Versions: 0.4.50
@@ -24,19 +23,21 @@ RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-roku#${ROKU_
 RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-weather-plus#${WEATHER_VERSION} --ignore-engines --network-timeout 100000 > /dev/null
 RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-dyson-link#${DYSON_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
 RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-pc-volume#${VOLUME_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
-RUN         cd node_modules/homebridge-pc-volume && yarn && yarn build
+
+WORKDIR     /build/node_modules/homebridge-pc-volume
+RUN         yarn && yarn build
 
 #######################
 # Running image
 #######################
 FROM        node:dubnium-buster-slim
 
-MAINTAINER  dubo-dubon-duponey@jsboot.space
+LABEL       dockerfile.copyright="Dubo Dubon Duponey <dubo-dubon-duponey@jsboot.space>"
+
 ARG         DEBIAN_FRONTEND="noninteractive"
 ENV         TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 RUN         apt-get update              > /dev/null && \
-            apt-get dist-upgrade -y                 && \
-            apt-get install -y --no-install-recommends dbus avahi-daemon libnss-mdns libasound2 alsa-utils \
+            apt-get install -y --no-install-recommends dbus=1.12.16-1 avahi-daemon=0.7-4+b1 libnss-mdns=0.14.1-1 libasound2=1.1.8-1 alsa-utils=1.1.8-2 \
                                         > /dev/null && \
             apt-get -y autoremove       > /dev/null && \
             apt-get -y clean            && \
