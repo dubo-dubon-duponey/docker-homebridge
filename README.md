@@ -1,10 +1,42 @@
 # What
 
-A docker image for [homebridge](https://github.com/nfarina/homebridge).
+Docker image for a "Homebridge" server.
 
- * multi-architecture (linux/amd64, linux/arm64, linux/arm/v7)
- * based on dubnium debian:stretch-slim
- * contains connectors for Dyson air purifiers and alsa volume control
+This is based on [homebridge](https://github.com/nfarina/homebridge).
+
+Additionally contains connectors for Dyson air purifiers and alsa volume control.
+
+## Image features
+
+ * multi-architecture:
+    * [✓] linux/amd64
+    * [✓] linux/arm64
+    * [✓] linux/arm/v7
+    * [  ] linux/arm/v6 (no nodejs for v6)
+ * hardened:
+    * [✓] image runs read-only
+    * [✓] image runs with no capabilities
+    * [~] process runs as a non-root user, disabled login, no shell
+        * the entrypoint script still runs as root before dropping privileges (due to avahi-daemon)
+ * lightweight
+    * [✓] based on `debian:buster-slim`
+    * [✓] simple entrypoint script
+    * [  ] multi-stage build with ~~no installed dependencies for the runtime image~~:
+        * dbus (required by homebridge)
+        * avahi-daemon (required by homebridge)
+        * libnss-mdns (required by homebridge)
+        * libasound2 (required by the volume plugin)
+        * alsa-utils (required by the volume plugin)
+
+
+
+
+
+
+
+
+
+
 
 ## Run
 

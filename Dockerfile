@@ -1,72 +1,62 @@
-##########################
+#######################
 # Building image
-##########################
-FROM        node:dubnium-buster-slim                                                                      AS builder
+#######################
+FROM          dubodubonduponey/base:builder                                   AS builder
 
-# Install dependencies and tools
-ARG         DEBIAN_FRONTEND="noninteractive"
-ENV         TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
-RUN         apt-get update                                                                                > /dev/null
-RUN         apt-get install -y --no-install-recommends git=1:2.20.1-2 libavahi-compat-libdnssd-dev=0.7-4+b1 > /dev/null
-WORKDIR     /build
+WORKDIR       /build/node
 
 # Versions: 0.4.50
-ARG         HOMEBRIDGE_VERSION=adb1f26ae26dc4ad47c8da682e9f251d7b201bbf
-ARG         ROKU_VERSION=b99bfaab55b5c973495cd00d0aee81676926450e
-ARG         WEATHER_VERSION=4ad21db38b9a4b5bd5b84e49f424b6a5270b21c0
-ARG         DYSON_VERSION=176de27844a402a1e3f05d8105b1ff78c5f86ebb
-ARG         VOLUME_VERSION=0301e4ab9baa4fa6420278cd8e610f07e5e4a92b
+ARG           HOMEBRIDGE_VERSION=adb1f26ae26dc4ad47c8da682e9f251d7b201bbf
+ARG           DYSON_VERSION=7e8d7b3654c33c205fb1cf5e5d44120220d4756e
+ARG           ROKU_VERSION=b99bfaab55b5c973495cd00d0aee81676926450e
+ARG           VOLUME_VERSION=acaeab459d77644ad202839dd85c290670546a96
+ARG           WEATHER_VERSION=45d3286b2f3e52d664ed745b9ce2eea462d3bcda
 
-RUN         yarn init -p -y
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge#${HOMEBRIDGE_VERSION}
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-roku#${ROKU_VERSION}            --ignore-engines --network-timeout 100000 > /dev/null
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-weather-plus#${WEATHER_VERSION} --ignore-engines --network-timeout 100000 > /dev/null
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-dyson-link#${DYSON_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-pc-volume#${VOLUME_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
+RUN           yarnpkg init -p -y
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge#${HOMEBRIDGE_VERSION}
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge-dyson-link#${DYSON_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge-roku#${ROKU_VERSION}            --ignore-engines --network-timeout 100000 > /dev/null
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge-pc-volume#${VOLUME_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge-weather-plus#${WEATHER_VERSION} --ignore-engines --network-timeout 100000 > /dev/null
 
-WORKDIR     /build/node_modules/homebridge-pc-volume
-RUN         yarn && yarn build
+WORKDIR       /build/node/node_modules/homebridge-pc-volume
+RUN           yarnpkg
+RUN           yarnpkg build
 
 #######################
 # Running image
 #######################
-FROM        node:dubnium-buster-slim
+FROM          dubodubonduponey/base:runtime
 
-LABEL       dockerfile.copyright="Dubo Dubon Duponey <dubo-dubon-duponey@jsboot.space>"
+WORKDIR       /app
+# Get relevant bits from builder
+COPY          --from=builder --chown=$BUILD_UID:0 /build/node /app
+# RUN           find /app -type d -exec chmod -R 770 {} \; && find /config -type f -exec chmod -R 660 {} \;
 
-ARG         DEBIAN_FRONTEND="noninteractive"
-ENV         TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
-RUN         apt-get update              > /dev/null && \
-            apt-get install -y --no-install-recommends dbus=1.12.16-1 avahi-daemon=0.7-4+b1 libnss-mdns=0.14.1-1 libasound2=1.1.8-1 alsa-utils=1.1.8-2 \
-                                        > /dev/null && \
-            apt-get -y autoremove       > /dev/null && \
-            apt-get -y clean            && \
-            rm -rf /var/lib/apt/lists/* && \
-            rm -rf /tmp/*               && \
-            rm -rf /var/tmp/*
+USER          root
 
-WORKDIR     /dubo-dubon-duponey
-RUN         mkdir -p /var/run/dbus
-COPY        avahi-daemon.conf /etc/avahi/avahi-daemon.conf
-COPY        entrypoint.sh .
+RUN           apt-get update              > /dev/null && \
+              apt-get install -y --no-install-recommends \
+                nodejs=10.15.2~dfsg-2 \
+                dbus=1.12.16-1 \
+                avahi-daemon=0.7-4+b1 \
+                libnss-mdns=0.14.1-1 \
+                libasound2=1.1.8-1 \
+                alsa-utils=1.1.8-2        > /dev/null && \
+              apt-get -y autoremove       > /dev/null && \
+              apt-get -y clean            && \
+              rm -rf /var/lib/apt/lists/* && \
+              rm -rf /tmp/*               && \
+              rm -rf /var/tmp/*
+RUN           dbus-uuidgen --ensure
+RUN           mkdir -p /run/dbus && chown $BUILD_UID:root /run/dbus && chmod 775 /run/dbus
+# RUN           mkdir -p /run/avahi-daemon && chown $BUILD_UID:root /run/avahi-daemon && chmod 770 /run/avahi-daemon
 
-COPY        --from=builder /build .
+VOLUME        /config
+VOLUME        /data
+VOLUME        /run
 
-EXPOSE      5353
-EXPOSE      51826
-VOLUME      "/root/.homebridge"
+ENV           AVAHI_NAME="Farcloser Homebridge"
 
-ENTRYPOINT  ["./entrypoint.sh"]
-
-# XXX notes
-#    git python make g++ inetutils-ping sudo apt-utils apt-transport-https curl wget libnss-mdns avahi-discover libkrb5-dev ffmpeg nano vim
-# UI is annoying and useless
-# ENV CONFIG_UI_VERSION=4.5.1
-# RUN yarn add homebridge-config-ui-x@${CONFIG_UI_VERSION} --network-timeout 100000
-# homebridge-hue-scenes - meh
-
-# Interesting: https://www.npmjs.com/package/homebridge-http-base
-#  && mkdir /homebridge \
-#  && npm set global-style=true \
-#  && npm set package-lock=false
-
+EXPOSE        5353
+EXPOSE        51826
