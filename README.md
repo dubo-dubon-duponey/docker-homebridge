@@ -4,7 +4,7 @@ Docker image for a "Homebridge" server.
 
 This is based on [homebridge](https://github.com/nfarina/homebridge).
 
-Additionally contains connectors for Dyson air purifiers and alsa volume control.
+Additionally contains connectors for Dyson air purifiers, Roku, Weather, and Alsa volume control.
 
 ## Image features
 
@@ -15,28 +15,25 @@ Additionally contains connectors for Dyson air purifiers and alsa volume control
     * [  ] linux/arm/v6 (no nodejs for v6)
  * hardened:
     * [✓] image runs read-only
-    * [✓] image runs with no capabilities
+    * [~] image runs with the following capabilities:
+        * SYS_CHROOT
+        * DAC_OVERRIDE
+        * CHOWN
+        * SETUID
+        * SETGID
     * [~] process runs as a non-root user, disabled login, no shell
         * the entrypoint script still runs as root before dropping privileges (due to avahi-daemon)
  * lightweight
     * [✓] based on `debian:buster-slim`
     * [✓] simple entrypoint script
-    * [  ] multi-stage build with ~~no installed dependencies for the runtime image~~:
-        * dbus (required by homebridge)
-        * avahi-daemon (required by homebridge)
-        * libnss-mdns (required by homebridge)
-        * libasound2 (required by the volume plugin)
-        * alsa-utils (required by the volume plugin)
-
-
-
-
-
-
-
-
-
-
+    * [~] multi-stage build with ~~no installed~~ dependencies for the runtime image:
+        * dbus (required by Homebridge)
+        * avahi-daemon (required by Homebridge)
+        * libnss-mdns (required by Homebridge)
+ * observable
+    * [  ] healthcheck
+    * [n.a.] ~~prometheus endpoint~~
+    * [✓] log to stdout
 
 ## Run
 
@@ -44,8 +41,15 @@ Additionally contains connectors for Dyson air purifiers and alsa volume control
 docker run -d \
     --net=host \
     --device /dev/snd \
-    --volume [host_path]:/root/.homebridge \
+    --volume [host_path]:/config \
     --env AVAHI_NAME="My Homebridge server name" \
+    --cap-drop ALL \
+    --cap-add SYS_CHROOT \
+    --cap-add DAC_OVERRIDE \
+    --cap-add CHOWN \
+    --cap-add SETUID \
+    --cap-add SETGID \
+    --read-only \
     dubodubonduponey/homebridge:v1
 ```
 
@@ -56,7 +60,7 @@ docker run -d \
  * `bridge` mode will NOT work for discovery, since mDNS will not broadcast on your lan subnet (you may still access the server explicitely on port 548)
  * `host` (default, easy choice) is only acceptable as long as you DO NOT have any other containers running on the same ip using avahi
 
-If you intend on running multiple containers relying on avahi, you may want to consider `macvlan`.
+If you intend on running multiple containers relying on Avahi, you may want to consider `macvlan`.
 
 TL;DR:
 
@@ -66,9 +70,6 @@ docker network create -d macvlan \
   --ip-range=192.168.1.128/25 \
   --gateway=192.168.1.1 \
   -o parent=eth0 hackvlan
-  
-docker run -d --env AVAHI_NAME=N1 --name=N1 --device /dev/snd --volume [host_path]:/root/.homebridge --network=hackvlan dubodubonduponey/homebridge:v1
-docker run -d --env AVAHI_NAME=N2 --name=N2 --device /dev/snd --volume [host_path_2]:/root/.homebridge --network=hackvlan dubodubonduponey/homebridge:v1
 ```
 
 Need help with macvlan?
@@ -82,12 +83,8 @@ You only need to use `/dev/snd` if the target is a speaker and you intend on usi
 
 ### Advanced configuration
 
-Would you need to, you may optionally pass along:
+You can additionally mount `/data`, would you need to customize `avahi-daemon.conf`.
  
- * `--volume [host_path]/avahi-daemon.conf:/etc/avahi/avahi-daemon.conf`
-
-Also, any additional arguments when running the image will get fed to the `homebridge` binary.
-
 Typical Dyson configuration:
 ```json
 {
