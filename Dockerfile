@@ -1,7 +1,22 @@
 #######################
+# Extra builder for healthchecker
+#######################
+FROM          --platform=$BUILDPLATFORM dubodubonduponey/base:builder                                                   AS builder-healthcheck
+
+ARG           HEALTH_VER=51ebf8ca3d255e0c846307bf72740f731e6210c3
+
+WORKDIR       $GOPATH/src/github.com/dubo-dubon-duponey/healthcheckers
+RUN           git clone git://github.com/dubo-dubon-duponey/healthcheckers .
+RUN           git checkout $HEALTH_VER
+RUN           arch="${TARGETPLATFORM#*/}"; \
+              env GOOS=linux GOARCH="${arch%/*}" go build -v -ldflags "-s -w" -o /dist/bin/http-health ./cmd/http
+
+RUN           chmod 555 /dist/bin/*
+
+#######################
 # Building image
 #######################
-FROM          dubodubonduponey/base:builder                                   AS builder
+FROM          dubodubonduponey/base:builder                                                                             AS builder
 
 WORKDIR       /build/node
 
@@ -24,19 +39,20 @@ FROM          dubodubonduponey/base:runtime
 
 WORKDIR       /app
 # Get relevant bits from builder
-COPY          --from=builder --chown=$BUILD_UID:0 /build/node /app
+COPY          --from=builder --chown=$BUILD_UID:root /build/node /app
+COPY          --from=builder-healthcheck  /dist/bin/http-health /boot/bin/
 # RUN           find /app -type d -exec chmod -R 770 {} \; && find /config -type f -exec chmod -R 660 {} \;
 
 USER          root
 
-RUN           apt-get update              > /dev/null && \
-              apt-get install -y --no-install-recommends \
+RUN           apt-get update -qq && \
+              apt-get install -qq --no-install-recommends \
                 nodejs=10.15.2~dfsg-2 \
                 dbus=1.12.16-1 \
                 avahi-daemon=0.7-4+b1 \
-                libnss-mdns=0.14.1-1      > /dev/null && \
-              apt-get -y autoremove       > /dev/null && \
-              apt-get -y clean            && \
+                libnss-mdns=0.14.1-1 && \
+              apt-get -qq autoremove      && \
+              apt-get -qq clean           && \
               rm -rf /var/lib/apt/lists/* && \
               rm -rf /tmp/*               && \
               rm -rf /var/tmp/*

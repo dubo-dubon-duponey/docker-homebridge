@@ -43,17 +43,17 @@ case "${arch##*-}" in \
   armel)
     rm -Rf /etc/ssl/certs
     rm -Rf /usr/share/ca-certificates
-    apt-get update
-    apt-get remove -y --purge ca-certificates openssl
-    apt-get install -y --no-install-recommends curl ca-certificates
+    apt-get update -qq
+    apt-get remove -qq --purge ca-certificates openssl
+    apt-get install -qq --no-install-recommends curl ca-certificates
     update-ca-certificates
   ;;
   armhf)
     rm -Rf /etc/ssl/certs
     rm -Rf /usr/share/ca-certificates
-    apt-get update
-    apt-get remove -y --purge ca-certificates openssl
-    apt-get install -y --no-install-recommends curl ca-certificates
+    apt-get update -qq
+    apt-get remove -qq --purge ca-certificates openssl
+    apt-get install -qq --no-install-recommends curl ca-certificates
     update-ca-certificates
   ;;
 esac
