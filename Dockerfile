@@ -43,6 +43,7 @@ COPY          --from=builder --chown=$BUILD_UID:root /build/node /app
 COPY          --from=builder-healthcheck  /dist/bin/http-health /boot/bin/
 # RUN           find /app -type d -exec chmod -R 770 {} \; && find /config -type f -exec chmod -R 660 {} \;
 
+# hadolint ignore=DL3002
 USER          root
 
 RUN           apt-get update -qq && \
@@ -59,7 +60,7 @@ RUN           apt-get update -qq && \
 
 RUN           dbus-uuidgen --ensure \
               && mkdir -p /run/dbus \
-              && chown $BUILD_UID:root /run/dbus \
+              && chown "$BUILD_UID":root /run/dbus \
               && chmod 775 /run/dbus \
               && ln -s /config/config.json /data/config.json
 # RUN           mkdir -p /run/avahi-daemon && chown $BUILD_UID:root /run/avahi-daemon && chmod 770 /run/avahi-daemon
