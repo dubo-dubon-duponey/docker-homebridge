@@ -9,31 +9,31 @@ Additionally contains connectors for Dyson air purifiers, Roku, Weather, and Als
 ## Image features
 
  * multi-architecture:
-    * [✓] linux/amd64
-    * [✓] linux/arm64
-    * [✓] linux/arm/v7
-    * [  ] linux/arm/v6 (no nodejs for v6)
+    * [x] linux/amd64
+    * [x] linux/arm64
+    * [x] linux/arm/v7
+    * [ ] ~~linux/arm/v6~~ no nodejs for v6
  * hardened:
-    * [✓] image runs read-only
-    * [~] image runs with the following capabilities:
+    * [x] image runs read-only
+    * [ ] image runs with the following capabilities:
         * SYS_CHROOT
         * DAC_OVERRIDE
         * CHOWN
         * SETUID
         * SETGID
-    * [~] process runs as a non-root user, disabled login, no shell
+    * [ ] process runs as a non-root user, disabled login, no shell
         * the entrypoint script still runs as root before dropping privileges (due to avahi-daemon)
  * lightweight
-    * [✓] based on `debian:buster-slim`
-    * [✓] simple entrypoint script
-    * [~] multi-stage build with ~~no installed~~ dependencies for the runtime image:
-        * dbus (required by Homebridge)
-        * avahi-daemon (required by Homebridge)
-        * libnss-mdns (required by Homebridge)
+    * [x] based on our slim [Debian buster version](https://github.com/dubo-dubon-duponey/docker-debian)
+    * [x] simple entrypoint script
+    * [ ] multi-stage build with ~~no installed~~ dependencies for the runtime image:
+        * dbus
+        * avahi-daemon
+        * libnss-mdns
  * observable
-    * [  ] healthcheck
-    * [n.a.] ~~prometheus endpoint~~
-    * [✓] log to stdout
+    * [TODO] healthcheck
+    * [ ] ~~prometheus endpoint~~ not applicable
+    * [x] log to stdout
 
 ## Run
 
@@ -107,24 +107,3 @@ Typical Dyson configuration:
   }]
 }
 ```
-
-Typical speaker configuration:
-````json
-{
-  "accessories": [{
-    "accessory": "ComputerSpeakers",
-    "name": "Something Fancy",
-    "device": "Digital",
-    "card": "2",
-    "services": ["fan"]
-  }]
-}
-````
-
-Both `device` and `card` are optional, and allows you to use a non-default mixer (first mixer found by aplay) or card (alsa default card).
-
-`services` allows you to select different display controls (either "fan" or "lightbulb") in "Home".
-
-Note that the speaker backend has been forked from their upstream projects to support card and device selection.
-
-See dockerfile for source.

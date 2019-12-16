@@ -72,7 +72,7 @@ VOLUME        /data
 VOLUME        /run
 
 ENV           AVAHI_NAME="Farcloser Homebridge"
-ENV           HEALTHCHECK_URL="http://127.0.0.1:51826"
+ENV           HEALTHCHECK_URL="http://127.0.0.1:5353"
 
 # XXX healthcheck please
 EXPOSE        5353
