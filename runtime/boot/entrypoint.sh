@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-########################################################################################################################
-# Common helpers
-########################################################################################################################
-# Err on anything
-# Note: bluetoothd might fail
-set -e
+set -o errexit -o errtrace -o functrace -o nounset -o pipefail
 
 helpers::dbus(){
   # On container restart, cleanup the crap
@@ -58,4 +53,4 @@ case "${arch##*-}" in \
   ;;
 esac
 
-exec chroot --userspec=dubo-dubon-duponey / /app/node_modules/.bin/homebridge --user-storage-path /data -P /config "$@"
+exec chroot --userspec=dubo-dubon-duponey / /boot/node_modules/.bin/homebridge --user-storage-path /data -P /config "$@"
