@@ -1,72 +1,81 @@
-##########################
-# Building image
-##########################
-FROM        node:dubnium-buster-slim                                                                      AS builder
+#######################
+# Extra builder for healthchecker
+#######################
+ARG           BUILDER_BASE=dubodubonduponey/base:builder
+ARG           RUNTIME_BASE=dubodubonduponey/base:runtime
+# hadolint ignore=DL3006
+FROM          --platform=$BUILDPLATFORM $BUILDER_BASE                                                                   AS builder-healthcheck
 
-# Install dependencies and tools
-ARG         DEBIAN_FRONTEND="noninteractive"
-ENV         TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
-RUN         apt-get update                                                                                > /dev/null
-RUN         apt-get install -y --no-install-recommends git=1:2.20.1-2 libavahi-compat-libdnssd-dev=0.7-4+b1 > /dev/null
-WORKDIR     /build
+ARG           HEALTH_VER=51ebf8ca3d255e0c846307bf72740f731e6210c3
+
+WORKDIR       $GOPATH/src/github.com/dubo-dubon-duponey/healthcheckers
+RUN           git clone git://github.com/dubo-dubon-duponey/healthcheckers .
+RUN           git checkout $HEALTH_VER
+RUN           arch="${TARGETPLATFORM#*/}"; \
+              env GOOS=linux GOARCH="${arch%/*}" go build -v -ldflags "-s -w" -o /dist/boot/bin/http-health ./cmd/http
+
+#######################
+# Building image
+#######################
+# hadolint ignore=DL3006
+FROM          $BUILDER_BASE                                                                                             AS builder
+
+WORKDIR       /dist/boot
 
 # Versions: 0.4.50
-ARG         HOMEBRIDGE_VERSION=adb1f26ae26dc4ad47c8da682e9f251d7b201bbf
-ARG         ROKU_VERSION=b99bfaab55b5c973495cd00d0aee81676926450e
-ARG         WEATHER_VERSION=4ad21db38b9a4b5bd5b84e49f424b6a5270b21c0
-ARG         DYSON_VERSION=176de27844a402a1e3f05d8105b1ff78c5f86ebb
-ARG         VOLUME_VERSION=0301e4ab9baa4fa6420278cd8e610f07e5e4a92b
+ARG           HOMEBRIDGE_VERSION=adb1f26ae26dc4ad47c8da682e9f251d7b201bbf
+ARG           DYSON_VERSION=7e8d7b3654c33c205fb1cf5e5d44120220d4756e
+ARG           ROKU_VERSION=b99bfaab55b5c973495cd00d0aee81676926450e
+ARG           WEATHER_VERSION=45d3286b2f3e52d664ed745b9ce2eea462d3bcda
 
-RUN         yarn init -p -y
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge#${HOMEBRIDGE_VERSION}
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-roku#${ROKU_VERSION}            --ignore-engines --network-timeout 100000 > /dev/null
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-weather-plus#${WEATHER_VERSION} --ignore-engines --network-timeout 100000 > /dev/null
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-dyson-link#${DYSON_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
-RUN         yarn add git://github.com/dubo-dubon-duponey/homebridge-pc-volume#${VOLUME_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
+RUN           yarnpkg init -p -y
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge#${HOMEBRIDGE_VERSION}
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge-dyson-link#${DYSON_VERSION}     --ignore-engines --network-timeout 100000 > /dev/null
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge-roku#${ROKU_VERSION}            --ignore-engines --network-timeout 100000 > /dev/null
+RUN           yarnpkg add git://github.com/dubo-dubon-duponey/homebridge-weather-plus#${WEATHER_VERSION} --ignore-engines --network-timeout 100000 > /dev/null
 
-WORKDIR     /build/node_modules/homebridge-pc-volume
-RUN         yarn && yarn build
+COPY          --from=builder-healthcheck /dist/boot/bin           /dist/boot/bin
+RUN           chmod 555 /dist/boot/bin/*
 
 #######################
 # Running image
 #######################
-FROM        node:dubnium-buster-slim
+# hadolint ignore=DL3006
+FROM          $RUNTIME_BASE
 
-LABEL       dockerfile.copyright="Dubo Dubon Duponey <dubo-dubon-duponey@jsboot.space>"
+COPY          --from=builder --chown=$BUILD_UID:root /dist .
 
-ARG         DEBIAN_FRONTEND="noninteractive"
-ENV         TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
-RUN         apt-get update              > /dev/null && \
-            apt-get install -y --no-install-recommends dbus=1.12.16-1 avahi-daemon=0.7-4+b1 libnss-mdns=0.14.1-1 libasound2=1.1.8-1 alsa-utils=1.1.8-2 \
-                                        > /dev/null && \
-            apt-get -y autoremove       > /dev/null && \
-            apt-get -y clean            && \
-            rm -rf /var/lib/apt/lists/* && \
-            rm -rf /tmp/*               && \
-            rm -rf /var/tmp/*
+# hadolint ignore=DL3002
+USER          root
 
-WORKDIR     /dubo-dubon-duponey
-RUN         mkdir -p /var/run/dbus
-COPY        avahi-daemon.conf /etc/avahi/avahi-daemon.conf
-COPY        entrypoint.sh .
+RUN           apt-get update -qq && \
+              apt-get install -qq --no-install-recommends \
+                nodejs=10.15.2~dfsg-2 \
+                dbus=1.12.16-1 \
+                avahi-daemon=0.7-4+b1 \
+                libnss-mdns=0.14.1-1 && \
+              apt-get -qq autoremove      && \
+              apt-get -qq clean           && \
+              rm -rf /var/lib/apt/lists/* && \
+              rm -rf /tmp/*               && \
+              rm -rf /var/tmp/*
 
-COPY        --from=builder /build .
+RUN           dbus-uuidgen --ensure \
+              && mkdir -p /run/dbus \
+              && chown "$BUILD_UID":root /run/dbus \
+              && chmod 775 /run/dbus \
+              && ln -s /config/config.json /data/config.json
+# RUN           mkdir -p /run/avahi-daemon && chown $BUILD_UID:root /run/avahi-daemon && chmod 770 /run/avahi-daemon
 
-EXPOSE      5353
-EXPOSE      51826
-VOLUME      "/root/.homebridge"
+VOLUME        /config
+VOLUME        /data
+VOLUME        /run
 
-ENTRYPOINT  ["./entrypoint.sh"]
+ENV           AVAHI_NAME="Farcloser Homebridge"
+ENV           HEALTHCHECK_URL="http://127.0.0.1:5353"
 
-# XXX notes
-#    git python make g++ inetutils-ping sudo apt-utils apt-transport-https curl wget libnss-mdns avahi-discover libkrb5-dev ffmpeg nano vim
-# UI is annoying and useless
-# ENV CONFIG_UI_VERSION=4.5.1
-# RUN yarn add homebridge-config-ui-x@${CONFIG_UI_VERSION} --network-timeout 100000
-# homebridge-hue-scenes - meh
+# XXX healthcheck please
+EXPOSE        5353
+EXPOSE        51826
 
-# Interesting: https://www.npmjs.com/package/homebridge-http-base
-#  && mkdir /homebridge \
-#  && npm set global-style=true \
-#  && npm set package-lock=false
-
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=1 CMD http-health || exit 1
