@@ -32,8 +32,8 @@ Additionally contains connectors for Dyson air purifiers, Roku, Weather, and Als
         * libnss-mdns
  * observable
     * [TODO] healthcheck
-    * [ ] ~~prometheus endpoint~~ not applicable
     * [x] log to stdout
+    * [ ] ~~prometheus endpoint~~ not applicable
 
 ## Run
 
@@ -107,3 +107,7 @@ Typical Dyson configuration:
   }]
 }
 ```
+
+## Moar?
+
+See [DEVELOP.md](DEVELOP.md)
